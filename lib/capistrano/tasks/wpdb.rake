@@ -32,15 +32,21 @@ namespace :wpcli do
       unless roles(:dev).empty?
         on roles(:dev) do
           within fetch(:dev_path) do
-            execute :gunzip, "<", fetch(:wpcli_local_db_file), "|", :wp, :db, :import, "-"
-            execute :rm, fetch(:wpcli_local_db_file)
+            local_tmp_file = fetch(:wpcli_local_db_file).gsub(/\.gz$/, "")
+
+            execute :gunzip, "-c", fetch(:wpcli_local_db_file), ">", local_tmp_file
+            execute :wp, :db, :import, local_tmp_file
+            execute :rm, fetch(:wpcli_local_db_file), local_tmp_file
             execute :wp, "search-replace", fetch(:wpcli_remote_url), fetch(:wpcli_local_url), fetch(:wpcli_args) || "--skip-columns=guid"
           end
         end
       else
         run_locally do
-          execute :gunzip, "<", fetch(:wpcli_local_db_file), "|", :wp, :db, :import, "-"
-          execute :rm, fetch(:wpcli_local_db_file)
+          local_tmp_file = fetch(:wpcli_local_db_file).gsub(/\.gz$/, "")
+
+          execute :gunzip, "-c", fetch(:wpcli_local_db_file), ">", local_tmp_file
+          execute :wp, :db, :import, local_tmp_file
+          execute :rm, fetch(:wpcli_local_db_file), local_tmp_file
           execute :wp, "search-replace", fetch(:wpcli_remote_url), fetch(:wpcli_local_url), fetch(:wpcli_args) || "--skip-columns=guid"
         end
       end
@@ -62,8 +68,11 @@ namespace :wpcli do
       on roles(:web) do
         upload! fetch(:wpcli_local_db_file), fetch(:wpcli_remote_db_file)
         within release_path do
-          execute :gunzip, "<", fetch(:wpcli_remote_db_file), "|", :wp, :db, :import, "-"
-          execute :rm, fetch(:wpcli_remote_db_file)
+          remote_tmp_file = fetch(:wpcli_remote_db_file).gsub(/\.gz$/, "")
+
+          execute :gunzip, "-c", fetch(:wpcli_remote_db_file), ">", remote_tmp_file
+          execute :wp, :db, :import, remote_tmp_file
+          execute :rm, fetch(:wpcli_remote_db_file), remote_tmp_file
           execute :wp, "search-replace", fetch(:wpcli_local_url), fetch(:wpcli_remote_url), fetch(:wpcli_args) || "--skip-columns=guid"
         end
       end
